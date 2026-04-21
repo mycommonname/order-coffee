@@ -1,121 +1,121 @@
 let beverageCount = 1;
 
-document.querySelector('.add-button').addEventListener('click', () => {
+const modal = document.getElementById('modal');
+const closeBtn = document.querySelector('.close-btn');
+const form = document.querySelector('form');
+const addButton = document.querySelector('.add-button');
+
+const dictionary = {
+    "обычном молоке": "обычное",
+    "обезжиренном молоке": "обезжиренное",
+    "соевом молоке": "соевое",
+    "кокосовом молоке": "кокосовое",
+    "взбитых сливок": "взбитые сливки",
+    "зефирок": "зефирки",
+    "шоколад": "шоколад",
+    "корицу": "корица"
+};
+
+function getBeveragePlural(n) {
+    n = Math.abs(n) % 100;
+    const n1 = n % 10;
+    if (n > 10 && n < 20) 
+        return 'напитков';
+    if (n1 > 1 && n1 < 5) 
+        return 'напитка';
+    if (n1 === 1) 
+        return 'напиток';
+    return 'напитков';
+}
+
+function refreshNumbers() {
+    const forms = document.querySelectorAll('.beverage');
+    beverageCount = forms.length;
+    forms.forEach((form, index) => {
+        form.querySelector('.beverage-count').textContent = `Напиток №${index + 1}`;
+    });
+}
+
+function removeBeverage(e) {
+    const forms = document.querySelectorAll('.beverage');
+    if (forms.length > 1) {
+        e.target.closest('.beverage').remove();
+        refreshNumbers();
+    }
+}
+
+addButton.addEventListener('click', () => {
     beverageCount++;
-    const form = document.querySelector('form');
-    const buttonContainer = document.querySelector('.add-button').closest('div');
+    const forms = document.querySelectorAll('.beverage');
+    const lastForm = forms[forms.length - 1];
     
-    const newFieldset = createBeverageFieldset(beverageCount);
-    form.insertBefore(newFieldset, buttonContainer);
+    const newForm = lastForm.cloneNode(true);
+    newForm.querySelector('.beverage-count').textContent = `Напиток №${beverageCount}`;
+    
+    newForm.querySelectorAll('input').forEach(input => {
+        if (input.type === 'radio') {
+            input.name = `milk-${beverageCount}`;
+        } else {
+            input.checked = false;
+        }
+    });
+
+    newForm.querySelector('.remove-button').onclick = (e) => removeBeverage(e);
+    lastForm.after(newForm);
 });
 
-function createBeverageFieldset(number) {
-    const fieldset = document.createElement('fieldset');
-    fieldset.className = 'beverage';
+form.addEventListener('submit', (e) => {
+    e.preventDefault();
     
-    const h4 = document.createElement('h4');
-    h4.className = 'beverage-count';
-    h4.textContent = 'Напиток №' + number;
+    const beverages = document.querySelectorAll('.beverage');
+    const count = beverages.length;
     
-    const label = document.createElement('label');
-    label.className = 'field';
-    
-    const spanLabel = document.createElement('span');
-    spanLabel.className = 'label-text';
-    spanLabel.textContent = 'Я буду';
-    
-    const select = document.createElement('select');
-    
-    const espressoOption = document.createElement('option');
-    espressoOption.value = 'espresso';
-    espressoOption.textContent = 'Эспрессо';
-    
-    const capuccinoOption = document.createElement('option');
-    capuccinoOption.value = 'capuccino';
-    capuccinoOption.textContent = 'Капучино';
-    
-    const cacaoOption = document.createElement('option');
-    cacaoOption.value = 'cacao';
-    cacaoOption.textContent = 'Какао';
-    
-    select.appendChild(espressoOption);
-    select.appendChild(capuccinoOption);
-    select.appendChild(cacaoOption);
-    
-    label.appendChild(spanLabel);
-    label.appendChild(select);
-    
-    const milkField = document.createElement('div');
-    milkField.className = 'field';
-    
-    const milkLabel = document.createElement('span');
-    milkLabel.className = 'checkbox-label';
-    milkLabel.textContent = 'Сделайте напиток на';
-    
-    milkField.appendChild(milkLabel);
-    
-    const milkTypes = [
-        { value: 'usual', text: 'обычном молоке' },
-        { value: 'no-fat', text: 'обезжиренном молоке' },
-        { value: 'soy', text: 'соевом молоке' },
-        { value: 'coconut', text: 'кокосовом молоке' }
-    ];
-    
-    milkTypes.forEach((milk, index) => {
-        const labelElem = document.createElement('label');
-        labelElem.className = 'checkbox-field';
+    document.getElementById('modal-message').textContent = `Вы заказали ${count} ${getBeveragePlural(count)}`;
+
+    let tableHtml = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Напиток</th>
+                    <th>Молоко</th>
+                    <th>Дополнительно</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+    beverages.forEach(beverage => {
+        const type = beverage.querySelector('select option:checked').text;
         
-        const input = document.createElement('input');
-        input.type = 'radio';
-        input.name = 'milk-' + number;
-        input.value = milk.value;
-        if (index === 0) input.checked = true;
+        const milkRaw = beverage.querySelector('input[type="radio"]:checked + span').textContent.trim();
+        const milk = dictionary[milkRaw] || milkRaw;
         
-        const span = document.createElement('span');
-        span.textContent = milk.text;
-        
-        labelElem.appendChild(input);
-        labelElem.appendChild(span);
-        milkField.appendChild(labelElem);
+        const extras = Array.from(beverage.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(el => {
+                const text = el.nextElementSibling.textContent.trim();
+                return dictionary[text] || text;
+            })
+            .join(', ');
+
+        tableHtml += `
+            <tr>
+                <td>${type}</td>
+                <td>${milk}</td>
+                <td>${extras}</td>
+            </tr>`;
     });
+
+    tableHtml += `</tbody></table>`;
     
-    const optionsField = document.createElement('div');
-    optionsField.className = 'field';
-    
-    const optionsLabel = document.createElement('span');
-    optionsLabel.className = 'checkbox-label';
-    optionsLabel.textContent = 'Добавьте к напитку:';
-    
-    optionsField.appendChild(optionsLabel);
-    
-    const options = [
-        { value: 'whipped cream', text: 'взбитых сливок' },
-        { value: 'marshmallow', text: 'зефирок' },
-        { value: 'chocolate', text: 'шоколад' },
-        { value: 'cinnamon', text: 'корицу' }
-    ];
-    
-    options.forEach(option => {
-        const labelElem = document.createElement('label');
-        labelElem.className = 'checkbox-field';
-        
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.name = 'options-' + number;
-        input.value = option.value;
-        
-        const span = document.createElement('span');
-        span.textContent = option.text;
-        
-        labelElem.appendChild(input);
-        labelElem.appendChild(span);
-        optionsField.appendChild(labelElem);
-    });
-    
-    fieldset.appendChild(h4);
-    fieldset.appendChild(label);
-    fieldset.appendChild(milkField);
-    fieldset.appendChild(optionsField);
-    
-    return fieldset;
-}
+    document.getElementById('modal-table-container').innerHTML = tableHtml;
+    modal.style.display = 'block';
+});
+
+closeBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+});
+
+window.addEventListener('click', (e) => {
+    if (e.target === modal) modal.style.display = 'none';
+});
+
+document.querySelector('.remove-button').onclick = (e) => removeBeverage(e);
